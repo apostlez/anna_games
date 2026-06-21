@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="달려라 두부 — 안나와 행복하게 살던 햄스터 두부가 허리케인으로 날아갔다! 하늘을 날고 구름을 건너 집으로 돌아가는 사이드 스크롤 액션 게임">
+    <meta name="theme-color" content="#C8B6FF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="달려라 두부">
+    <meta property="og:description" content="안나와 행복하게 살던 햄스터 두부가 허리케인으로 날아갔다! 탭으로 점프하고, 연속 탭으로 날아 집으로 돌아가세요.">
+    <meta property="og:type" content="website">
+
+    <title>달려라 두부 🐹</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Prevent zooming on double-tap -->
+    <style>
+        * { touch-action: manipulation; }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingOverlay">
+        <div class="loading-text">달려라 두부</div>
+        <div class="loading-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="450"></canvas>
+    </div>
+
+    <!-- Game Scripts -->
+    <script type="module">
+        import './js/main.js';
+
+        // Hide loading overlay once game is ready
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const overlay = document.getElementById('loadingOverlay');
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                    setTimeout(() => overlay.remove(), 600);
+                }
+            }, 800);
+        });
+    </script>
+</body>
+</html>
