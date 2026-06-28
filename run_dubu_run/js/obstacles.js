@@ -10,7 +10,8 @@ import {
     randInt, randFloat, drawCloudShape, checkCollision,
     BIG_ANIMAL_WIDTH, BIG_ANIMAL_HEIGHT, CHECKPOINT_DISTANCE_INTERVAL,
     CHECKPOINT_SAFE_DURATION, SNACK_INVINCIBLE_DURATION, drawRoundedRect,
-    GAME_CLEAR_DISTANCE, PLAYER_START_X
+    GAME_CLEAR_DISTANCE, PLAYER_START_X,
+    DIFFICULTY_EASY, DIFFICULTY_HARD, HARD_GAME_CLEAR_DISTANCE
 } from './utils.js';
 
 
@@ -910,6 +911,107 @@ class Snack {
 }
 
 
+// ─── Shallow Puddle (Hard mode — slows player 50%) ───────────
+class ShallowPuddle {
+    constructor(x) {
+        this.type = 'shallow_puddle';
+        this.x = x;
+        this.width = randInt(80, 140);
+        this.active = true;
+        this.waveTimer = Math.random() * Math.PI * 2;
+    }
+
+    update(scrollSpeed) {
+        this.x -= scrollSpeed;
+        this.waveTimer += 0.06;
+        if (this.x + this.width < -50) this.active = false;
+    }
+
+    getHitbox() {
+        return { x: this.x, y: GROUND_Y - 9, width: this.width, height: 12 };
+    }
+
+    draw(ctx) {
+        ctx.save();
+        // Water fill
+        ctx.fillStyle = 'rgba(80, 170, 230, 0.55)';
+        ctx.fillRect(this.x, GROUND_Y - 9, this.width, 12);
+
+        // Wave lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i <= this.width; i += 12) {
+            const wy = Math.sin(this.waveTimer + i * 0.15) * 2 - 5;
+            if (i === 0) ctx.moveTo(this.x + i, GROUND_Y + wy);
+            else ctx.lineTo(this.x + i, GROUND_Y + wy);
+        }
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('💧 얕은 물', this.x + this.width / 2, GROUND_Y - 14);
+        ctx.restore();
+    }
+}
+
+// ─── Deep Puddle (Hard mode — game over on contact) ──────────
+class DeepPuddle {
+    constructor(x) {
+        this.type = 'deep_puddle';
+        this.x = x;
+        this.width = randInt(100, 160);
+        this.active = true;
+        this.waveTimer = Math.random() * Math.PI * 2;
+        this.blinkTimer = 0;
+    }
+
+    update(scrollSpeed) {
+        this.x -= scrollSpeed;
+        this.waveTimer += 0.05;
+        this.blinkTimer += 0.1;
+        if (this.x + this.width < -50) this.active = false;
+    }
+
+    getHitbox() {
+        return { x: this.x, y: GROUND_Y - 10, width: this.width, height: 15 };
+    }
+
+    draw(ctx) {
+        ctx.save();
+        // Dark deep water
+        ctx.fillStyle = 'rgba(0, 20, 70, 0.82)';
+        ctx.fillRect(this.x, GROUND_Y - 10, this.width, 14);
+
+        // Surface glint
+        ctx.fillStyle = 'rgba(40, 100, 200, 0.5)';
+        ctx.fillRect(this.x, GROUND_Y - 10, this.width, 4);
+
+        // Danger wave
+        ctx.strokeStyle = 'rgba(100, 160, 255, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i <= this.width; i += 10) {
+            const wy = Math.sin(this.waveTimer + i * 0.18) * 1.5 - 7;
+            if (i === 0) ctx.moveTo(this.x + i, GROUND_Y + wy);
+            else ctx.lineTo(this.x + i, GROUND_Y + wy);
+        }
+        ctx.stroke();
+
+        // Warning label
+        const blinkAlpha = 0.6 + Math.sin(this.blinkTimer) * 0.35;
+        ctx.globalAlpha = blinkAlpha;
+        ctx.fillStyle = '#FF4444';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚠ 깊은 물', this.x + this.width / 2, GROUND_Y - 15);
+        ctx.restore();
+    }
+}
+
+
 // ─── Goal Scene (2km Finish — Anna & Castle) ─────────────────
 class GoalScene {
     constructor(x) {
@@ -1159,6 +1261,9 @@ export class ObstacleManager {
         this.spawnPaused = false;
         this.goalSpawned = false;
         this.goalTriggered = false;
+        this.difficulty = DIFFICULTY_EASY;
+        this.insideShallowPuddle = false;
+        this.insideDeepPuddle = false;
     }
 
     reset() {
@@ -1175,13 +1280,19 @@ export class ObstacleManager {
         this.spawnPaused = false;
         this.goalSpawned = false;
         this.goalTriggered = false;
+        this.insideShallowPuddle = false;
+        this.insideDeepPuddle = false;
     }
 
     update(scrollSpeed, player, dtFactor = 1) {
         this.distance += scrollSpeed;
-        
-        // Spawn goal scene near 2km finish
-        if (!this.goalSpawned && this.getDistance() >= GAME_CLEAR_DISTANCE - 100) {
+        this.insideShallowPuddle = false;
+        this.insideDeepPuddle = false;
+
+        const clearDist = this.difficulty === DIFFICULTY_HARD ? HARD_GAME_CLEAR_DISTANCE : GAME_CLEAR_DISTANCE;
+
+        // Spawn goal scene near finish
+        if (!this.goalSpawned && this.getDistance() >= clearDist - 100) {
             this.goalSpawned = true;
             this.spawnPaused = true; // stop spawning new obstacles on approach
             this.obstacles.push(new GoalScene(CANVAS_WIDTH + 100));
@@ -1189,7 +1300,7 @@ export class ObstacleManager {
 
         // Spawn checkpoint when milestone is crossed (not at game-clear distance)
         const currentMilestone = Math.floor(this.getDistance() / CHECKPOINT_DISTANCE_INTERVAL) * CHECKPOINT_DISTANCE_INTERVAL;
-        if (currentMilestone > this.lastCheckpointMilestone && currentMilestone < GAME_CLEAR_DISTANCE) {
+        if (currentMilestone > this.lastCheckpointMilestone && currentMilestone < clearDist) {
             this.lastCheckpointMilestone = currentMilestone;
             this._spawnCheckpoint(currentMilestone);
         }
@@ -1243,6 +1354,10 @@ export class ObstacleManager {
                         // checkpoint logic is handled below
                     } else if (obs.type === TYPES.LIGHTNING) {
                         // lightning is visual-only, no damage
+                    } else if (obs.type === 'shallow_puddle') {
+                        this.insideShallowPuddle = true;
+                    } else if (obs.type === 'deep_puddle') {
+                        this.insideDeepPuddle = true;
                     } else {
                         // Dark cloud, animal, big animal = damage (unless invincible)
                         if (!player.invincible) {
@@ -1312,6 +1427,10 @@ export class ObstacleManager {
             { type: TYPES.RAIN, weight: 15 + difficulty * 5 },
             { type: TYPES.LIGHTNING, weight: 5 + difficulty * 10 },
         ];
+        if (this.difficulty === DIFFICULTY_HARD) {
+            weights.push({ type: 'shallow_puddle', weight: 18 });
+            weights.push({ type: 'deep_puddle', weight: 10 });
+        }
 
         const totalWeight = weights.reduce((sum, w) => sum + w.weight, 0);
         let rand = Math.random() * totalWeight;
@@ -1349,6 +1468,12 @@ export class ObstacleManager {
                 break;
             case TYPES.BIG_ANIMAL:
                 this.obstacles.push(new BigAnimal(x));
+                break;
+            case 'shallow_puddle':
+                this.obstacles.push(new ShallowPuddle(x));
+                break;
+            case 'deep_puddle':
+                this.obstacles.push(new DeepPuddle(x));
                 break;
         }
     }

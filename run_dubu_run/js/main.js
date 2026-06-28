@@ -3,7 +3,12 @@
  * 달려라 두부 (Run Dubu Run!)
  */
 
-import { CANVAS_WIDTH, CANVAS_HEIGHT, BASE_SCROLL_SPEED, MAX_SCROLL_SPEED, SPEED_INCREASE_RATE, PLAYER_START_X, clamp, GAME_CLEAR_DISTANCE } from './utils.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, BASE_SCROLL_SPEED, MAX_SCROLL_SPEED, SPEED_INCREASE_RATE,
+    PLAYER_START_X, clamp, GAME_CLEAR_DISTANCE,
+    DIFFICULTY_EASY, DIFFICULTY_HARD,
+    SCORE_SNACK, SCORE_CHECKPOINT,
+    MENU_BTN_X, MENU_BTN_Y, MENU_BTN_SIZE
+} from './utils.js';
 import { InputManager } from './input.js';
 import { Player } from './player.js';
 import { TerrainManager } from './terrain.js';
@@ -17,7 +22,8 @@ const STATE = {
     PLAYING: 'playing',
     GAME_OVER: 'game_over',
     RESTING: 'resting',  // player is hiding in the cave checkpoint
-    GAME_CLEAR: 'game_clear', // player reached 2km goal
+    GAME_CLEAR: 'game_clear', // player reached goal
+    PAUSED: 'paused',         // menu button pressed
 };
 
 class Game {
@@ -45,6 +51,10 @@ class Game {
         this.restingDelay = 0;             // short lock-out before allowing resume
         this.restingClearTimer = 0;        // timer to clear obstacles after resting
         this.gameClearDelay = 0;           // prevent accidental tap-through on clear
+        this.difficulty = DIFFICULTY_EASY; // current game difficulty
+        this.score = 0;                    // current run score
+        this.sessionScores = [];           // [{distance, score, difficulty}] for this session
+        this._prevState = STATE.PLAYING;   // state to return to on resume from pause
 
 
         // Handle resize
@@ -98,6 +108,17 @@ class Game {
         this.frameCount += dtFactor;
         this.ui.update();
 
+        // Check for menu button tap during active gameplay
+        if (this.state === STATE.PLAYING || this.state === STATE.RESTING) {
+            const tap = this.input.peekAction();
+            if (tap.pressed && this._isMenuBtnArea(tap.x, tap.y)) {
+                this.input.consumeAction();
+                this._prevState = this.state;
+                this.state = STATE.PAUSED;
+                return;
+            }
+        }
+
         switch (this.state) {
             case STATE.MENU:
                 this._updateMenu(dtFactor);
@@ -114,6 +135,9 @@ class Game {
             case STATE.GAME_CLEAR:
                 this._updateGameClear(dtFactor);
                 break;
+            case STATE.PAUSED:
+                this._updatePaused(dtFactor);
+                break;
         }
     }
 
@@ -122,6 +146,14 @@ class Game {
         this.terrain.update(1.5 * dtFactor, dtFactor);
 
         if (this.input.consumeAction()) {
+            const { x, y } = this.input.getLastTap();
+            // Difficulty easy button: (245, 302, 140, 38)
+            if (this._isInRect(x, y, CANVAS_WIDTH / 2 - 155, 302, 140, 38)) {
+                this.difficulty = DIFFICULTY_EASY;
+            // Difficulty hard button: (415, 302, 140, 38)
+            } else if (this._isInRect(x, y, CANVAS_WIDTH / 2 + 15, 302, 140, 38)) {
+                this.difficulty = DIFFICULTY_HARD;
+            }
             this._startGame();
         }
     }
@@ -141,12 +173,28 @@ class Game {
             if (this.obstacles.insideRain) {
                 targetSpeed *= 0.85;
             }
+
+            // Apply 50% slow effect if inside shallow puddle (hard mode)
+            if (this.obstacles.insideShallowPuddle) {
+                targetSpeed *= 0.5;
+            }
             
             this.scrollSpeed = clamp(
                 targetSpeed,
                 BASE_SCROLL_SPEED * 0.5,
                 MAX_SCROLL_SPEED
             );
+        }
+
+        // Deep puddle = instant game over
+        if (this.obstacles.insideDeepPuddle && !this.player.invincible) {
+            this.player.alive = false;
+        }
+
+        // Snack collected: award score
+        if (this.obstacles.snackCollected !== null) {
+            this.score += SCORE_SNACK;
+            this.obstacles.snackCollected = null;
         }
 
         // Effective per-frame movement scaled by delta time
@@ -165,6 +213,7 @@ class Game {
             this.player.vx = 0;
             this.player.vy = 0;
             this.player.state = 'idle';
+            this.score += SCORE_CHECKPOINT;
             this.ui.showCheckpointBanner(milestone);
             this._spawnCelebrationParticles();
             this.input.reset();
@@ -225,6 +274,8 @@ class Game {
         this.player.update(null, dtFactor);
 
         if (this.gameOverDelay <= 0 && this.input.consumeAction()) {
+            // Record this run's score in session scores
+            this._recordSessionScore();
             this._restartGame();
         }
     }
@@ -265,8 +316,10 @@ class Game {
         this.player.reset();
         this.terrain.reset();
         this.obstacles.reset();
+        this.obstacles.difficulty = this.difficulty;
         this.scrollSpeed = BASE_SCROLL_SPEED;
         this.frameCount = 0;
+        this.score = 0;
         this.input.reset();
         this.checkpointSafeTimer = 0;
         this.restCaveX = PLAYER_START_X;
@@ -285,6 +338,7 @@ class Game {
         this.player.updateAnimationOnly();
 
         if (this.gameClearDelay <= 0 && this.input.consumeAction()) {
+            this._recordSessionScore();
             this._restartGame();
         }
     }
@@ -308,6 +362,58 @@ class Game {
     _restartGame() {
         this.ui.resetGameOver();
         this._startGame();
+    }
+
+    _goToMenu() {
+        this.ui.resetGameOver();
+        this.state = STATE.MENU;
+        this.input.reset();
+    }
+
+    _recordSessionScore() {
+        const entry = {
+            distance: this.obstacles.getDistance(),
+            score: this.score,
+            difficulty: this.difficulty,
+        };
+        this.sessionScores.push(entry);
+        // Sort by distance desc, then score desc
+        this.sessionScores.sort((a, b) =>
+            b.distance !== a.distance ? b.distance - a.distance : b.score - a.score
+        );
+        // Keep top 10
+        if (this.sessionScores.length > 10) this.sessionScores.length = 10;
+    }
+
+    _updatePaused(dtFactor) {
+        const tap = this.input.peekAction();
+        if (!tap.pressed) return;
+        this.input.consumeAction();
+
+        const cy = CANVAS_HEIGHT / 2;
+        const btnW = 220, btnH = 46;
+        const btnX = CANVAS_WIDTH / 2 - btnW / 2;
+        const resumeY  = cy - 40;
+        const titleBtnY = cy + 20;
+
+        if (this._isInRect(tap.x, tap.y, btnX, resumeY, btnW, btnH)) {
+            // Resume
+            this.state = this._prevState;
+            this.input.reset();
+        } else if (this._isInRect(tap.x, tap.y, btnX, titleBtnY, btnW, btnH)) {
+            // Go to title
+            this._recordSessionScore();
+            this._goToMenu();
+        }
+    }
+
+    _isMenuBtnArea(x, y) {
+        return x >= MENU_BTN_X && x <= MENU_BTN_X + MENU_BTN_SIZE &&
+               y >= MENU_BTN_Y && y <= MENU_BTN_Y + MENU_BTN_SIZE;
+    }
+
+    _isInRect(x, y, rx, ry, rw, rh) {
+        return x >= rx && x <= rx + rw && y >= ry && y <= ry + rh;
     }
 
     _render() {
@@ -345,28 +451,45 @@ class Game {
         // UI
         switch (this.state) {
             case STATE.MENU:
-                this.ui.drawStartScreen();
+                this.ui.drawStartScreen(this.difficulty, this.sessionScores);
                 break;
             case STATE.PLAYING:
                 this.ui.drawHUD(
                     this.obstacles.getDistance(),
-                    this.scrollSpeed
+                    this.scrollSpeed,
+                    this.score
                 );
                 this.renderer.drawDistanceBar(this.obstacles.getDistance());
                 break;
             case STATE.RESTING:
                 this.ui.drawHUD(
                     this.obstacles.getDistance(),
-                    this.scrollSpeed
+                    this.scrollSpeed,
+                    this.score
                 );
                 this.renderer.drawDistanceBar(this.obstacles.getDistance());
                 this._drawRestingOverlay();
                 break;
             case STATE.GAME_OVER:
-                this.ui.drawGameOverScreen(this.obstacles.getDistance());
+                this.ui.drawGameOverScreen(
+                    this.obstacles.getDistance(),
+                    this.score,
+                    this.sessionScores
+                );
                 break;
             case STATE.GAME_CLEAR:
-                this.ui.drawGameClearScreen(this.obstacles.getDistance());
+                this.ui.drawGameClearScreen(
+                    this.obstacles.getDistance(),
+                    this.score
+                );
+                break;
+            case STATE.PAUSED:
+                this.ui.drawHUD(
+                    this.obstacles.getDistance(),
+                    this.scrollSpeed,
+                    this.score
+                );
+                this.ui.drawPauseOverlay();
                 break;
         }
     }

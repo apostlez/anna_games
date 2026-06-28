@@ -41,9 +41,23 @@ export const CHECKPOINT_SAFE_DURATION = 180; // 3 seconds at 60fps
 
 // Game clear distance (meters)
 export const GAME_CLEAR_DISTANCE = 2000;
+export const HARD_GAME_CLEAR_DISTANCE = 4000; // Hard mode goes to 4km
 
 // Snack / Invincibility constants
 export const SNACK_INVINCIBLE_DURATION = 180; // 3 seconds at 60fps
+
+// ─── Difficulty ────────────────────────────────────────────
+export const DIFFICULTY_EASY = 'easy';
+export const DIFFICULTY_HARD = 'hard';
+
+// ─── Score System ──────────────────────────────────────────
+export const SCORE_SNACK = 100;
+export const SCORE_CHECKPOINT = 500;
+
+// ─── Menu Button (top-left, canvas coords) ─────────────────
+export const MENU_BTN_X = 10;
+export const MENU_BTN_Y = 10;
+export const MENU_BTN_SIZE = 34;
 
 // ─── Color Palette ────────────────────────────────────────────
 export const COLORS = {

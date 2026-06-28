@@ -68,7 +68,7 @@ export class UI {
     }
 
     // ─── Start Screen ─────────────────────────────────────────
-    drawStartScreen() {
+    drawStartScreen(difficulty = 'easy', sessionScores = []) {
         const ctx = this.ctx;
         this.titleBounce = Math.sin(this.animTimer * 0.04) * 8;
         this.promptAlpha = 0.5 + Math.sin(this.animTimer * 0.06) * 0.4;
@@ -160,11 +160,89 @@ export class UI {
         ctx.lineTo(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 38 + arrowBounce);
         ctx.closePath();
         ctx.fill();
+
+        // ─── Difficulty selector ───────────────────────────────
+        const dBtnY = 302;
+        const dBtnH = 38;
+        const easyX = CANVAS_WIDTH / 2 - 155;
+        const hardX = CANVAS_WIDTH / 2 + 15;
+        const dBtnW = 140;
+
+        // Easy button
+        ctx.save();
+        if (difficulty === 'easy') {
+            ctx.shadowColor = COLORS.accent;
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = COLORS.accent;
+        } else {
+            ctx.fillStyle = 'rgba(180,180,180,0.55)';
+        }
+        drawRoundedRect(ctx, easyX, dBtnY, dBtnW, dBtnH, 10);
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = difficulty === 'easy' ? '#fff' : COLORS.textLight;
+        ctx.font = 'bold 14px "Quicksand", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🌟 쉬움', easyX + dBtnW / 2, dBtnY + dBtnH / 2);
+
+        // Hard button
+        ctx.save();
+        if (difficulty === 'hard') {
+            ctx.shadowColor = '#FF6B6B';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = '#FF6B6B';
+        } else {
+            ctx.fillStyle = 'rgba(180,180,180,0.55)';
+        }
+        drawRoundedRect(ctx, hardX, dBtnY, dBtnW, dBtnH, 10);
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = difficulty === 'hard' ? '#fff' : COLORS.textLight;
+        ctx.font = 'bold 14px "Quicksand", sans-serif';
+        ctx.fillText('🔥 어려움', hardX + dBtnW / 2, dBtnY + dBtnH / 2);
+
+        // Hard mode hint
+        if (difficulty === 'hard') {
+            ctx.fillStyle = 'rgba(200, 80, 80, 0.8)';
+            ctx.font = '10px "Quicksand", sans-serif';
+            ctx.fillText('물웅덩이 조심! 목표 4km', CANVAS_WIDTH / 2, dBtnY + dBtnH + 12);
+        } else {
+            ctx.fillStyle = COLORS.textLight;
+            ctx.font = '10px "Quicksand", sans-serif';
+            ctx.fillText('목표 2km', CANVAS_WIDTH / 2, dBtnY + dBtnH + 12);
+        }
+
+        // Session best record (if exists)
+        if (sessionScores.length > 0) {
+            const best = sessionScores[0];
+            const tag = best.difficulty === 'hard' ? '[🔥]' : '[🌟]';
+            ctx.fillStyle = COLORS.textLight;
+            ctx.font = '11px "Quicksand", sans-serif';
+            ctx.fillText(`이번 세션 최고: ${best.distance}m  ⭐${best.score}  ${tag}`, CANVAS_WIDTH / 2, dBtnY + dBtnH + 30);
+        }
     }
 
     // ─── HUD ──────────────────────────────────────────────────
-    drawHUD(distance, scrollSpeed) {
+    drawHUD(distance, scrollSpeed, score = 0) {
         const ctx = this.ctx;
+
+        // ─── Menu button (top-left, hamburger ≡) ────────────────
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        drawRoundedRect(ctx, 10, 10, 34, 34, 8);
+        ctx.fill();
+        ctx.fillStyle = COLORS.text;
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = COLORS.text;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(17, 19 + i * 7);
+            ctx.lineTo(37, 19 + i * 7);
+            ctx.stroke();
+        }
+        ctx.restore();
 
         // Distance display — top right
         ctx.save();
@@ -187,6 +265,23 @@ export class UI {
         ctx.fillText('🐹', CANVAS_WIDTH - 135, 27);
 
         ctx.restore();
+
+        // Score pill — below distance
+        if (score > 0) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+            drawRoundedRect(ctx, CANVAS_WIDTH - 140, 46, 125, 24, 12);
+            ctx.fill();
+            ctx.fillStyle = COLORS.textLight;
+            ctx.font = 'bold 12px "Quicksand", sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${score}pt`, CANVAS_WIDTH - 25, 58);
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('⭐', CANVAS_WIDTH - 135, 58);
+            ctx.restore();
+        }
 
         // Draw checkpoint banner if active
         this._drawCheckpointBanner();
@@ -217,7 +312,7 @@ export class UI {
     }
 
     // ─── Game Over Screen ─────────────────────────────────────
-    drawGameOverScreen(distance) {
+    drawGameOverScreen(distance, score = 0, sessionScores = []) {
         const ctx = this.ctx;
 
         // Update high score
@@ -239,8 +334,9 @@ export class UI {
         ctx.restore();
 
         // Card
+        const hasSession = sessionScores.length > 1;
         const cardW = 320;
-        const cardH = 220;
+        const cardH = hasSession ? Math.min(60 + sessionScores.length * 20 + 180, 320) : 220;
         const cardX = CANVAS_WIDTH / 2 - cardW / 2;
         const targetY = CANVAS_HEIGHT / 2 - cardH / 2;
         const cardY = targetY - 50 + eased * 50;
@@ -284,10 +380,49 @@ export class UI {
         // Distance
         ctx.fillStyle = COLORS.textLight;
         ctx.font = '13px "Quicksand", sans-serif';
-        ctx.fillText('Distance', CANVAS_WIDTH / 2, cardY + 90);
+        ctx.fillText('Distance', CANVAS_WIDTH / 2, cardY + 88);
         ctx.fillStyle = COLORS.text;
-        ctx.font = 'bold 28px "Quicksand", sans-serif';
-        ctx.fillText(`${distance}m`, CANVAS_WIDTH / 2, cardY + 118);
+        ctx.font = 'bold 26px "Quicksand", sans-serif';
+        ctx.fillText(`${distance}m`, CANVAS_WIDTH / 2, cardY + 114);
+
+        // Score
+        if (score > 0) {
+            ctx.fillStyle = COLORS.textLight;
+            ctx.font = '11px "Quicksand", sans-serif';
+            ctx.fillText('점수', CANVAS_WIDTH / 2 - 50, cardY + 135);
+            ctx.fillStyle = COLORS.starYellow;
+            ctx.font = 'bold 13px "Quicksand", sans-serif';
+            ctx.fillText(`⭐ ${score}pt`, CANVAS_WIDTH / 2 + 20, cardY + 135);
+        }
+
+        // Session scores section
+        if (sessionScores.length > 1) {
+            const listY = cardY + 152;
+            ctx.strokeStyle = 'rgba(180,180,200,0.4)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cardX + 30, listY - 4);
+            ctx.lineTo(cardX + cardW - 30, listY - 4);
+            ctx.stroke();
+
+            ctx.fillStyle = COLORS.textLight;
+            ctx.font = 'bold 10px "Quicksand", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('📋 이번 세션 기록', CANVAS_WIDTH / 2, listY + 8);
+
+            const maxShow = Math.min(sessionScores.length, 4);
+            for (let i = 0; i < maxShow; i++) {
+                const s = sessionScores[i];
+                const rowY = listY + 22 + i * 17;
+                const tag = s.difficulty === 'hard' ? '🔥' : '🌟';
+                const isMe = i === 0 && sessionScores[0].distance === distance && sessionScores[0].score === score;
+                ctx.fillStyle = isMe ? COLORS.accent : COLORS.textLight;
+                ctx.font = `${isMe ? 'bold ' : ''}10px "Quicksand", sans-serif`;
+                ctx.fillText(`#${i + 1}  ${s.distance}m  ⭐${s.score}  ${tag}`, CANVAS_WIDTH / 2, rowY);
+            }
+        }
+
+        const recordY = cardH - 68;
 
         // New record badge
         if (isNewRecord) {
@@ -296,12 +431,12 @@ export class UI {
             ctx.globalAlpha = badgeAlpha * eased;
             ctx.fillStyle = COLORS.starYellow;
             ctx.font = 'bold 13px "Quicksand", sans-serif';
-            ctx.fillText('⭐ NEW RECORD! ⭐', CANVAS_WIDTH / 2, cardY + 145);
+            ctx.fillText('⭐ NEW RECORD! ⭐', CANVAS_WIDTH / 2, cardY + recordY);
             ctx.restore();
         } else {
             ctx.fillStyle = COLORS.textLight;
             ctx.font = '12px "Quicksand", sans-serif';
-            ctx.fillText(`Best: ${this.highScore}m`, CANVAS_WIDTH / 2, cardY + 145);
+            ctx.fillText(`Best: ${this.highScore}m`, CANVAS_WIDTH / 2, cardY + recordY);
         }
 
         // Retry prompt
@@ -311,7 +446,7 @@ export class UI {
             ctx.globalAlpha = retryAlpha;
             ctx.fillStyle = COLORS.accent;
             ctx.font = 'bold 15px "Quicksand", sans-serif';
-            ctx.fillText('TAP TO RETRY', CANVAS_WIDTH / 2, cardY + 190);
+            ctx.fillText('TAP TO RETRY', CANVAS_WIDTH / 2, cardY + cardH - 25);
             ctx.restore();
         }
 
@@ -325,7 +460,7 @@ export class UI {
     }
 
     // ─── Game Clear Screen ─────────────────────────────────────
-    drawGameClearScreen(distance) {
+    drawGameClearScreen(distance, score = 0) {
         const ctx = this.ctx;
 
         // Update high score
@@ -412,8 +547,15 @@ export class UI {
         ctx.font = '13px "Quicksand", sans-serif';
         ctx.fillText('완주 거리', CANVAS_WIDTH / 2, cardY + 115);
         ctx.fillStyle = COLORS.text;
-        ctx.font = 'bold 30px "Quicksand", sans-serif';
-        ctx.fillText(`${distance}m`, CANVAS_WIDTH / 2, cardY + 144);
+        ctx.font = 'bold 28px "Quicksand", sans-serif';
+        ctx.fillText(`${distance}m`, CANVAS_WIDTH / 2, cardY + 143);
+
+        // Score
+        if (score > 0) {
+            ctx.fillStyle = COLORS.starYellow;
+            ctx.font = 'bold 14px "Quicksand", sans-serif';
+            ctx.fillText(`⭐ ${score}pt`, CANVAS_WIDTH / 2, cardY + 165);
+        }
 
         // Stars row
         const starPulse = 0.8 + Math.sin(t * 0.12) * 0.2;
@@ -421,7 +563,7 @@ export class UI {
         ctx.globalAlpha = starPulse * eased;
         ctx.fillStyle = COLORS.starYellow;
         ctx.font = '22px sans-serif';
-        ctx.fillText('⭐⭐⭐', CANVAS_WIDTH / 2, cardY + 172);
+        ctx.fillText('⭐⭐⭐', CANVAS_WIDTH / 2, cardY + 185);
         ctx.restore();
 
         // Tap to replay
@@ -431,11 +573,64 @@ export class UI {
             ctx.globalAlpha = replayAlpha;
             ctx.fillStyle = COLORS.accent;
             ctx.font = 'bold 15px "Quicksand", sans-serif';
-            ctx.fillText('탭하여 다시 하기', CANVAS_WIDTH / 2, cardY + 205);
+            ctx.fillText('탭하여 다시 하기', CANVAS_WIDTH / 2, cardY + 213);
             ctx.restore();
         }
 
         ctx.restore();
+    }
+
+    // ─── Pause Overlay ────────────────────────────────────────
+    drawPauseOverlay() {
+        const ctx = this.ctx;
+
+        // Dim backdrop
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = '#0d0d1a';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.restore();
+
+        const cy = CANVAS_HEIGHT / 2;
+        const btnW = 220, btnH = 46;
+        const resumeY  = cy - 40;
+        const titleBtnY = cy + 20;
+        const btnX = CANVAS_WIDTH / 2 - btnW / 2;
+
+        // "Resume" button
+        ctx.save();
+        ctx.shadowColor = COLORS.accent;
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = COLORS.accent;
+        drawRoundedRect(ctx, btnX, resumeY, btnW, btnH, 14);
+        ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px "Quicksand", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('▶ 다시 진행하기', CANVAS_WIDTH / 2, resumeY + btnH / 2);
+
+        // "Go to title" button
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        drawRoundedRect(ctx, btnX, titleBtnY, btnW, btnH, 14);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 1.5;
+        drawRoundedRect(ctx, btnX, titleBtnY, btnW, btnH, 14);
+        ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px "Quicksand", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('↩ 타이틀로 돌아가기', CANVAS_WIDTH / 2, titleBtnY + btnH / 2);
+
+        // Pause label
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.font = 'bold 13px "Quicksand", sans-serif';
+        ctx.fillText('일시 정지', CANVAS_WIDTH / 2, cy - 70);
     }
 
     showCheckpointBanner(milestone) {
