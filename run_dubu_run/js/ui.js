@@ -27,6 +27,9 @@ export class UI {
         this.gameOverSlide = 0;
         this.showRetry = false;
 
+        // Game clear animation
+        this.gameClearSlide = 0;
+
         // Checkpoint banner state
         this.checkpointBannerTimer = 0;
         this.checkpointMilestone = 0;
@@ -318,6 +321,121 @@ export class UI {
     resetGameOver() {
         this.gameOverSlide = 0;
         this.showRetry = false;
+        this.gameClearSlide = 0;
+    }
+
+    // ─── Game Clear Screen ─────────────────────────────────────
+    drawGameClearScreen(distance) {
+        const ctx = this.ctx;
+
+        // Update high score
+        if (distance > this.highScore) {
+            this.highScore = distance;
+            this._saveHighScore(distance);
+        }
+
+        // Animate slide in
+        this.gameClearSlide = Math.min(this.gameClearSlide + 0.03, 1);
+        const eased = easeOutQuad(this.gameClearSlide);
+
+        // Celebratory overlay (warm glow)
+        ctx.save();
+        ctx.globalAlpha = 0.35 * eased;
+        ctx.fillStyle = '#FFD93D';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.restore();
+
+        // Confetti
+        const t = this.animTimer;
+        const confettiColors = ['#FF6B8A', '#FFD93D', '#74C69D', '#B5C0FF', '#FF9EBB'];
+        for (let i = 0; i < 20; i++) {
+            const cx = (Math.sin(t * 0.04 + i * 1.3) * 0.5 + 0.5) * CANVAS_WIDTH;
+            const cy = ((t * 0.6 + i * 22) % (CANVAS_HEIGHT + 20)) - 10;
+            ctx.save();
+            ctx.globalAlpha = 0.7 * eased;
+            ctx.fillStyle = confettiColors[i % confettiColors.length];
+            ctx.translate(cx, cy);
+            ctx.rotate(t * 0.05 + i);
+            ctx.fillRect(-4, -4, 8, 4);
+            ctx.restore();
+        }
+
+        // Card
+        const cardW = 340;
+        const cardH = 230;
+        const cardX = CANVAS_WIDTH / 2 - cardW / 2;
+        const targetY = CANVAS_HEIGHT / 2 - cardH / 2 - 10;
+        const cardY = targetY - 60 + eased * 60;
+
+        ctx.save();
+        ctx.globalAlpha = eased;
+        ctx.shadowColor = 'rgba(196, 69, 105, 0.25)';
+        ctx.shadowBlur = 30;
+        ctx.shadowOffsetY = 8;
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 22);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.globalAlpha = eased;
+
+        // Card border (gold)
+        const borderPulse = 0.7 + Math.sin(t * 0.1) * 0.3;
+        ctx.strokeStyle = `rgba(255, 193, 7, ${borderPulse})`;
+        ctx.lineWidth = 3.5;
+        drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 22);
+        ctx.stroke();
+
+        // 🎉 Title
+        ctx.fillStyle = '#C44569';
+        ctx.font = 'bold 30px "Quicksand", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🎉 게임 클리어! 🎉', CANVAS_WIDTH / 2, cardY + 42);
+
+        // Subtitle
+        ctx.fillStyle = '#7B2D8B';
+        ctx.font = 'bold 14px "Quicksand", sans-serif';
+        ctx.fillText('두부가 안나에게 돌아왔어요! 🐹🏠', CANVAS_WIDTH / 2, cardY + 72);
+
+        // Divider
+        ctx.strokeStyle = '#FFD93D';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cardX + 40, cardY + 92);
+        ctx.lineTo(cardX + cardW - 40, cardY + 92);
+        ctx.stroke();
+
+        // Distance
+        ctx.fillStyle = COLORS.textLight;
+        ctx.font = '13px "Quicksand", sans-serif';
+        ctx.fillText('완주 거리', CANVAS_WIDTH / 2, cardY + 115);
+        ctx.fillStyle = COLORS.text;
+        ctx.font = 'bold 30px "Quicksand", sans-serif';
+        ctx.fillText(`${distance}m`, CANVAS_WIDTH / 2, cardY + 144);
+
+        // Stars row
+        const starPulse = 0.8 + Math.sin(t * 0.12) * 0.2;
+        ctx.save();
+        ctx.globalAlpha = starPulse * eased;
+        ctx.fillStyle = COLORS.starYellow;
+        ctx.font = '22px sans-serif';
+        ctx.fillText('⭐⭐⭐', CANVAS_WIDTH / 2, cardY + 172);
+        ctx.restore();
+
+        // Tap to replay
+        if (this.gameClearSlide >= 0.8) {
+            const replayAlpha = 0.5 + Math.sin(t * 0.08) * 0.4;
+            ctx.save();
+            ctx.globalAlpha = replayAlpha;
+            ctx.fillStyle = COLORS.accent;
+            ctx.font = 'bold 15px "Quicksand", sans-serif';
+            ctx.fillText('탭하여 다시 하기', CANVAS_WIDTH / 2, cardY + 205);
+            ctx.restore();
+        }
+
+        ctx.restore();
     }
 
     showCheckpointBanner(milestone) {

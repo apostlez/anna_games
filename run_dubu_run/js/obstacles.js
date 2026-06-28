@@ -9,7 +9,8 @@ import {
     CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_Y, COLORS,
     randInt, randFloat, drawCloudShape, checkCollision,
     BIG_ANIMAL_WIDTH, BIG_ANIMAL_HEIGHT, CHECKPOINT_DISTANCE_INTERVAL,
-    CHECKPOINT_SAFE_DURATION, SNACK_INVINCIBLE_DURATION, drawRoundedRect
+    CHECKPOINT_SAFE_DURATION, SNACK_INVINCIBLE_DURATION, drawRoundedRect,
+    GAME_CLEAR_DISTANCE, PLAYER_START_X
 } from './utils.js';
 
 
@@ -458,8 +459,8 @@ class Animal {
         }
     }
 
-    update(scrollSpeed) {
-        this.x -= scrollSpeed + this.moveSpeed;
+    update(scrollSpeed, dtFactor = 1) {
+        this.x -= scrollSpeed + this.moveSpeed * dtFactor;
         this.animTimer++;
 
         // Hopping for squirrel
@@ -612,8 +613,8 @@ class BigAnimal {
         this.waddleAngle = 0;
     }
 
-    update(scrollSpeed) {
-        this.x -= scrollSpeed + this.moveSpeed;
+    update(scrollSpeed, dtFactor = 1) {
+        this.x -= scrollSpeed + this.moveSpeed * dtFactor;
         this.animTimer++;
         this.waddleAngle = Math.sin(this.animTimer * 0.1) * 0.08;
         if (this.x + this.width < -50) this.active = false;
@@ -909,6 +910,239 @@ class Snack {
 }
 
 
+// ─── Goal Scene (2km Finish — Anna & Castle) ─────────────────
+class GoalScene {
+    constructor(x) {
+        this.type = 'goal';
+        this.x = x;
+        this.width = 280;
+        this.active = true;
+        this.triggered = false;
+        this.animTimer = 0;
+    }
+
+    update(scrollSpeed) {
+        this.x -= scrollSpeed;
+        this.animTimer++;
+        if (this.x + this.width < -100) this.active = false;
+    }
+
+    getHitbox() {
+        return null;
+    }
+
+    draw(ctx) {
+        const gx = this.x;
+        const groundY = GROUND_Y;
+        const cx = gx + 80; // castle center x
+
+        // ── Flower path ──────────────────────────────────────
+        const flowerColors = ['#FF6B8A', '#FFD93D', '#C3F7C0', '#B5C0FF'];
+        for (let i = 0; i < 8; i++) {
+            const fx = gx + 8 + i * 30;
+            ctx.fillStyle = '#74C69D';
+            ctx.beginPath();
+            ctx.moveTo(fx, groundY);
+            ctx.lineTo(fx - 2, groundY - 14);
+            ctx.lineTo(fx + 2, groundY - 14);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = flowerColors[i % flowerColors.length];
+            ctx.beginPath();
+            ctx.arc(fx, groundY - 18, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ── Castle base walls ─────────────────────────────────
+        ctx.fillStyle = '#FFB3CC';
+        ctx.fillRect(cx - 45, groundY - 95, 90, 95);
+
+        // Left tower
+        ctx.fillStyle = '#FF9EBB';
+        ctx.fillRect(cx - 58, groundY - 85, 28, 85);
+        // Right tower
+        ctx.fillRect(cx + 30, groundY - 85, 28, 85);
+
+        // Tower / main roof (triangles)
+        ctx.fillStyle = '#C44569';
+        // Left roof
+        ctx.beginPath();
+        ctx.moveTo(cx - 60, groundY - 85);
+        ctx.lineTo(cx - 44, groundY - 112);
+        ctx.lineTo(cx - 28, groundY - 85);
+        ctx.closePath();
+        ctx.fill();
+        // Right roof
+        ctx.beginPath();
+        ctx.moveTo(cx + 28, groundY - 85);
+        ctx.lineTo(cx + 44, groundY - 112);
+        ctx.lineTo(cx + 60, groundY - 85);
+        ctx.closePath();
+        ctx.fill();
+        // Main roof
+        ctx.beginPath();
+        ctx.moveTo(cx - 46, groundY - 95);
+        ctx.lineTo(cx, groundY - 130);
+        ctx.lineTo(cx + 46, groundY - 95);
+        ctx.closePath();
+        ctx.fill();
+
+        // Battlements on main wall
+        ctx.fillStyle = '#FF9EBB';
+        for (let i = 0; i < 5; i++) {
+            ctx.fillRect(cx - 38 + i * 18, groundY - 100, 10, 8);
+        }
+
+        // Gate (arched door)
+        ctx.fillStyle = '#7B2D8B';
+        ctx.beginPath();
+        ctx.arc(cx, groundY - 25, 20, Math.PI, 0);
+        ctx.lineTo(cx + 20, groundY);
+        ctx.lineTo(cx - 20, groundY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#B24DC8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, groundY - 25, 20, Math.PI, 0);
+        ctx.stroke();
+
+        // Windows
+        ctx.fillStyle = '#FFF5CC';
+        ctx.beginPath(); ctx.arc(cx - 44, groundY - 55, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 44, groundY - 55, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx - 20, groundY - 58, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 20, groundY - 58, 7, 0, Math.PI * 2); ctx.fill();
+
+        // Window cross lines
+        ctx.strokeStyle = '#C44569';
+        ctx.lineWidth = 1.2;
+        [[cx - 44, groundY - 55, 6], [cx + 44, groundY - 55, 6],
+         [cx - 20, groundY - 58, 7], [cx + 20, groundY - 58, 7]].forEach(([wx, wy, r]) => {
+            ctx.beginPath();
+            ctx.moveTo(wx - r, wy); ctx.lineTo(wx + r, wy);
+            ctx.moveTo(wx, wy - r); ctx.lineTo(wx, wy + r);
+            ctx.stroke();
+        });
+
+        // Flag on main tower
+        ctx.strokeStyle = '#D4A017';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, groundY - 130);
+        ctx.lineTo(cx, groundY - 152);
+        ctx.stroke();
+        ctx.fillStyle = '#FF6B8A';
+        ctx.beginPath();
+        ctx.moveTo(cx, groundY - 152);
+        ctx.lineTo(cx + 16, groundY - 145);
+        ctx.lineTo(cx, groundY - 138);
+        ctx.closePath();
+        ctx.fill();
+
+        // Castle label
+        ctx.fillStyle = '#C44569';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏠 안나의 집!', cx, groundY - 138);
+
+        // ── Anna character ────────────────────────────────────
+        this._drawAnna(ctx, gx + 185, groundY, Math.sin(this.animTimer * 0.12) * 0.4);
+
+        // ── Floating sparkles ─────────────────────────────────
+        const t = this.animTimer * 0.05;
+        const sparkCols = ['#FFD93D', '#FF6B8A', '#C3F7C0', '#B5C0FF'];
+        for (let i = 0; i < 6; i++) {
+            const sx = gx + 20 + i * 40 + Math.sin(t + i) * 5;
+            const sy = groundY - 115 - Math.abs(Math.sin(t * 1.3 + i)) * 28;
+            ctx.fillStyle = sparkCols[i % 4];
+            ctx.globalAlpha = 0.6 + Math.sin(t * 2 + i) * 0.3;
+            ctx.beginPath();
+            ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    _drawAnna(ctx, x, groundY, waveAngle) {
+        // Dress
+        ctx.fillStyle = '#FFB7D5';
+        ctx.beginPath();
+        ctx.moveTo(x - 15, groundY);
+        ctx.lineTo(x + 15, groundY);
+        ctx.lineTo(x + 11, groundY - 38);
+        ctx.lineTo(x - 11, groundY - 38);
+        ctx.closePath();
+        ctx.fill();
+
+        // Torso
+        ctx.fillStyle = '#FF90B3';
+        ctx.fillRect(x - 9, groundY - 58, 18, 22);
+
+        // Head
+        ctx.fillStyle = '#FFDDB3';
+        ctx.beginPath();
+        ctx.arc(x, groundY - 70, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Hair
+        ctx.fillStyle = '#5C3317';
+        ctx.beginPath();
+        ctx.arc(x, groundY - 76, 13, Math.PI, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath(); ctx.arc(x - 13, groundY - 68, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 13, groundY - 68, 5, 0, Math.PI * 2); ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = '#2D3748';
+        ctx.beginPath(); ctx.arc(x - 5, groundY - 69, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + 5, groundY - 69, 2, 0, Math.PI * 2); ctx.fill();
+
+        // Smile
+        ctx.strokeStyle = '#C8705A';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, groundY - 63, 4, 0.1, Math.PI - 0.1);
+        ctx.stroke();
+
+        // Cheeks
+        ctx.fillStyle = 'rgba(255,150,160,0.4)';
+        ctx.beginPath(); ctx.ellipse(x - 8, groundY - 65, 4, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(x + 8, groundY - 65, 4, 2.5, 0, 0, Math.PI * 2); ctx.fill();
+
+        // Waving arm (right, animated)
+        ctx.save();
+        ctx.translate(x + 9, groundY - 52);
+        ctx.rotate(-waveAngle - 0.3);
+        ctx.strokeStyle = '#FFDDB3';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, -18);
+        ctx.stroke();
+        ctx.fillStyle = '#FFDDB3';
+        ctx.beginPath();
+        ctx.arc(0, -21, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Left arm
+        ctx.strokeStyle = '#FFDDB3';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x - 9, groundY - 52);
+        ctx.lineTo(x - 17, groundY - 40);
+        ctx.stroke();
+
+        // Legs
+        ctx.beginPath(); ctx.moveTo(x - 4, groundY - 38); ctx.lineTo(x - 5, groundY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x + 4, groundY - 38); ctx.lineTo(x + 5, groundY); ctx.stroke();
+    }
+}
+
+
 // ─── Obstacle Manager ────────────────────────────────────────
 export class ObstacleManager {
     constructor() {
@@ -923,6 +1157,8 @@ export class ObstacleManager {
         this.snackCollected = null;
         this.lastCheckpointMilestone = 0;
         this.spawnPaused = false;
+        this.goalSpawned = false;
+        this.goalTriggered = false;
     }
 
     reset() {
@@ -937,14 +1173,23 @@ export class ObstacleManager {
         this.snackCollected = null;
         this.lastCheckpointMilestone = 0;
         this.spawnPaused = false;
+        this.goalSpawned = false;
+        this.goalTriggered = false;
     }
 
-    update(scrollSpeed, player) {
+    update(scrollSpeed, player, dtFactor = 1) {
         this.distance += scrollSpeed;
         
-        // Spawn checkpoint when milestone is crossed
+        // Spawn goal scene near 2km finish
+        if (!this.goalSpawned && this.getDistance() >= GAME_CLEAR_DISTANCE - 100) {
+            this.goalSpawned = true;
+            this.spawnPaused = true; // stop spawning new obstacles on approach
+            this.obstacles.push(new GoalScene(CANVAS_WIDTH + 100));
+        }
+
+        // Spawn checkpoint when milestone is crossed (not at game-clear distance)
         const currentMilestone = Math.floor(this.getDistance() / CHECKPOINT_DISTANCE_INTERVAL) * CHECKPOINT_DISTANCE_INTERVAL;
-        if (currentMilestone > this.lastCheckpointMilestone) {
+        if (currentMilestone > this.lastCheckpointMilestone && currentMilestone < GAME_CLEAR_DISTANCE) {
             this.lastCheckpointMilestone = currentMilestone;
             this._spawnCheckpoint(currentMilestone);
         }
@@ -955,7 +1200,7 @@ export class ObstacleManager {
         }
 
         if (!this.spawnPaused) {
-            this.spawnTimer++;
+            this.spawnTimer += dtFactor;
             // Difficulty ramp: decrease spawn interval over distance
             const difficultyFactor = Math.min(this.distance / 15000, 1);
             const minInterval = 60 - difficultyFactor * 25;
@@ -974,7 +1219,7 @@ export class ObstacleManager {
         this.triggerLightningEffect = false;
 
         for (const obs of this.obstacles) {
-            obs.update(scrollSpeed);
+            obs.update(scrollSpeed, dtFactor);
 
             // Special effect trigger for lightning
             if (obs.type === TYPES.LIGHTNING && obs.triggerFlashAndShake) {
@@ -1015,6 +1260,14 @@ export class ObstacleManager {
                     this.checkpointTriggeredX = obs.x;
                 }
             }
+
+            // Check if player reached the goal scene
+            if (obs.type === 'goal' && !obs.triggered) {
+                if (obs.x <= PLAYER_START_X + 60) {
+                    obs.triggered = true;
+                    this.goalTriggered = true;
+                }
+            }
         }
 
         // Apply wind push to player
@@ -1024,6 +1277,10 @@ export class ObstacleManager {
 
         // Clean up inactive obstacles
         this.obstacles = this.obstacles.filter(o => o.active);
+    }
+
+    clearNonCheckpointObstacles() {
+        this.obstacles = this.obstacles.filter(o => o.type === 'checkpoint' || o.type === 'goal');
     }
 
     _spawnCheckpoint(milestone) {

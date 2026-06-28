@@ -96,42 +96,42 @@ export class Player {
         }, 8, 6);
     }
 
-    update(cloudPlatforms) {
+    update(cloudPlatforms, dtFactor = 1) {
         if (!this.alive && this.hurtTimer > 0) {
-            this.hurtTimer--;
+            this.hurtTimer -= dtFactor;
             this.hurtFlash = (this.hurtFlash + 1) % 6;
         }
 
         // Invincibility frames
         if (this.invincible) {
-            this.invincibleTimer--;
+            this.invincibleTimer -= dtFactor;
             if (this.invincibleTimer <= 0) {
                 this.invincible = false;
             }
-            if (this.animTimer % 6 === 0) {
+            if (Math.floor(this.animTimer) % 6 === 0) {
                 this._spawnInvincibleParticles();
             }
         }
 
-        // Apply gravity
-        this.vy += GRAVITY;
+        // Apply gravity (scaled by dtFactor for frame-rate independence)
+        this.vy += GRAVITY * dtFactor;
         this.vy = clamp(this.vy, -20, MAX_FALL_SPEED);
 
         // Apply wind push
         if (this.vx !== 0) {
-            this.x += this.vx;
-            this.vx *= 0.88; // stronger friction to reduce persistent drift
+            this.x += this.vx * dtFactor;
+            this.vx *= Math.pow(0.88, dtFactor); // frame-rate independent friction
             if (Math.abs(this.vx) < 0.1) this.vx = 0;
         }
 
         // Spring back toward natural x position to prevent wind-induced drift
-        this.x += (PLAYER_START_X - this.x) * 0.025;
+        this.x += (PLAYER_START_X - this.x) * (1 - Math.pow(0.975, dtFactor));
 
         // Keep player in horizontal bounds
         this.x = clamp(this.x, 20, 200);
 
         // Move vertically
-        this.y += this.vy;
+        this.y += this.vy * dtFactor;
 
         // Ground collision
         this.onGround = false;
@@ -153,7 +153,7 @@ export class Player {
                     this.x + this.width > cloud.x + 10 &&
                     this.x < cloud.x + cloud.width - 10 &&
                     this.y + this.height >= cloud.y &&
-                    this.y + this.height <= cloud.y + cloud.height * 0.5 + this.vy
+                    this.y + this.height <= cloud.y + cloud.height * 0.5 + this.vy * dtFactor
                 ) {
                     this.y = cloud.y - this.height;
                     this.vy = 0;

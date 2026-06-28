@@ -39,6 +39,9 @@ export const BIG_ANIMAL_HEIGHT = 45;
 export const CHECKPOINT_DISTANCE_INTERVAL = 500; // In meters
 export const CHECKPOINT_SAFE_DURATION = 180; // 3 seconds at 60fps
 
+// Game clear distance (meters)
+export const GAME_CLEAR_DISTANCE = 2000;
+
 // Snack / Invincibility constants
 export const SNACK_INVINCIBLE_DURATION = 180; // 3 seconds at 60fps
 

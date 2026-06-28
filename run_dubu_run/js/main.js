@@ -3,7 +3,7 @@
  * 달려라 두부 (Run Dubu Run!)
  */
 
-import { CANVAS_WIDTH, CANVAS_HEIGHT, BASE_SCROLL_SPEED, MAX_SCROLL_SPEED, SPEED_INCREASE_RATE, PLAYER_START_X, clamp } from './utils.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, BASE_SCROLL_SPEED, MAX_SCROLL_SPEED, SPEED_INCREASE_RATE, PLAYER_START_X, clamp, GAME_CLEAR_DISTANCE } from './utils.js';
 import { InputManager } from './input.js';
 import { Player } from './player.js';
 import { TerrainManager } from './terrain.js';
@@ -17,6 +17,7 @@ const STATE = {
     PLAYING: 'playing',
     GAME_OVER: 'game_over',
     RESTING: 'resting',  // player is hiding in the cave checkpoint
+    GAME_CLEAR: 'game_clear', // player reached 2km goal
 };
 
 class Game {
@@ -42,6 +43,8 @@ class Game {
         this.checkpointSafeTimer = 0;
         this.restCaveX = PLAYER_START_X;   // x where the cave checkpoint is
         this.restingDelay = 0;             // short lock-out before allowing resume
+        this.restingClearTimer = 0;        // timer to clear obstacles after resting
+        this.gameClearDelay = 0;           // prevent accidental tap-through on clear
 
 
         // Handle resize
@@ -80,60 +83,57 @@ class Game {
     }
 
     _loop(timestamp) {
-        // Delta time (capped to prevent spiral of death)
-        const dt = Math.min(timestamp - this._lastTime, 33.33); // cap at ~30fps equivalent
+        // Delta time: normalize to 60fps so speed is consistent on any display
+        const rawDt = Math.min(timestamp - this._lastTime, 100); // cap at 100ms
         this._lastTime = timestamp;
+        const dtFactor = rawDt / (1000 / 60); // 1.0 at 60fps, 0.5 at 120fps, 2.0 at 30fps
 
-        // Fixed timestep updates (60fps)
-        const step = 1000 / 60;
-        const updates = Math.floor(dt / step) || 1;
-
-        for (let i = 0; i < Math.min(updates, 3); i++) {
-            this._update();
-        }
-
+        this._update(dtFactor);
         this._render();
 
         requestAnimationFrame((t) => this._loop(t));
     }
 
-    _update() {
-        this.frameCount++;
+    _update(dtFactor) {
+        this.frameCount += dtFactor;
         this.ui.update();
 
         switch (this.state) {
             case STATE.MENU:
-                this._updateMenu();
+                this._updateMenu(dtFactor);
                 break;
             case STATE.PLAYING:
-                this._updatePlaying();
+                this._updatePlaying(dtFactor);
                 break;
             case STATE.RESTING:
-                this._updateResting();
+                this._updateResting(dtFactor);
                 break;
             case STATE.GAME_OVER:
-                this._updateGameOver();
+                this._updateGameOver(dtFactor);
+                break;
+            case STATE.GAME_CLEAR:
+                this._updateGameClear(dtFactor);
                 break;
         }
     }
 
-    _updateMenu() {
+    _updateMenu(dtFactor) {
         // Animate terrain in background
-        this.terrain.update(1.5);
+        this.terrain.update(1.5 * dtFactor, dtFactor);
 
         if (this.input.consumeAction()) {
             this._startGame();
         }
     }
 
-    _updatePlaying() {
+    _updatePlaying(dtFactor) {
         // Handle checkpoint safe zone timer
         if (this.checkpointSafeTimer > 0) {
-            this.checkpointSafeTimer--;
+            this.checkpointSafeTimer -= dtFactor;
             this.scrollSpeed = BASE_SCROLL_SPEED;
             this.obstacles.spawnPaused = true;
         } else {
-            this.obstacles.spawnPaused = false;
+            this.obstacles.spawnPaused = this.obstacles.goalSpawned; // freeze spawning near goal
             // Progressive difficulty
             let targetSpeed = BASE_SCROLL_SPEED + this.frameCount * SPEED_INCREASE_RATE;
             
@@ -149,6 +149,9 @@ class Game {
             );
         }
 
+        // Effective per-frame movement scaled by delta time
+        const effectiveSpeed = this.scrollSpeed * dtFactor;
+
         // Handle checkpoint triggers — enter cave rest
         if (this.obstacles.checkpointTriggered !== null) {
             const milestone = this.obstacles.checkpointTriggered;
@@ -157,6 +160,7 @@ class Game {
             this.obstacles.checkpointTriggeredX = null;
             this.checkpointSafeTimer = 0;
             this.restingDelay = 50; // ~0.8 s before allowing resume tap
+            this.restingClearTimer = 90; // 1.5 s then clear obstacles
             this.obstacles.spawnPaused = true;
             this.player.vx = 0;
             this.player.vy = 0;
@@ -167,12 +171,23 @@ class Game {
             this.state = STATE.RESTING;
         }
 
+        // Handle goal reached — game clear
+        if (this.obstacles.goalTriggered) {
+            this.obstacles.goalTriggered = false;
+            this.state = STATE.GAME_CLEAR;
+            this.gameClearDelay = 60;
+            this.player.vx = 0;
+            this.player.vy = 0;
+            this.player.state = 'idle';
+            this._spawnCelebrationParticles();
+            this.input.reset();
+        }
+
         // Handle lightning strike effects (screen shake)
         if (this.obstacles.triggerLightningEffect) {
             this.renderer.shake(16);
             this.obstacles.triggerLightningEffect = false; // consume
         }
-
 
         // Input
         const actionPressed = this.input.consumeAction();
@@ -187,9 +202,9 @@ class Game {
         }
 
         // Update world
-        this.terrain.update(this.scrollSpeed);
-        this.obstacles.update(this.scrollSpeed, this.player);
-        this.player.update(this.terrain.getCloudPlatforms());
+        this.terrain.update(effectiveSpeed, dtFactor);
+        this.obstacles.update(effectiveSpeed, this.player, dtFactor);
+        this.player.update(this.terrain.getCloudPlatforms(), dtFactor);
 
         // Check death
         if (!this.player.alive) {
@@ -200,21 +215,21 @@ class Game {
         }
     }
 
-    _updateGameOver() {
-        this.gameOverDelay = Math.max(0, this.gameOverDelay - 1);
+    _updateGameOver(dtFactor) {
+        this.gameOverDelay = Math.max(0, this.gameOverDelay - dtFactor);
 
         // Still update terrain slowly
-        this.terrain.update(0.5);
+        this.terrain.update(0.5 * dtFactor, dtFactor);
 
         // Update player (fall animation)
-        this.player.update(null);
+        this.player.update(null, dtFactor);
 
         if (this.gameOverDelay <= 0 && this.input.consumeAction()) {
             this._restartGame();
         }
     }
 
-    _updateResting() {
+    _updateResting(dtFactor) {
         // World is frozen — no terrain/obstacle scrolling
         // Pin player at cave entrance and run only animation
         this.player.x = this.restCaveX;
@@ -223,8 +238,16 @@ class Game {
         this.player.state = 'idle';
         this.player.updateAnimationOnly();
 
+        // After a delay, clear obstacles from screen so the player can see a clean cave
+        if (this.restingClearTimer > 0) {
+            this.restingClearTimer -= dtFactor;
+            if (this.restingClearTimer <= 0) {
+                this.obstacles.clearNonCheckpointObstacles();
+            }
+        }
+
         if (this.restingDelay > 0) {
-            this.restingDelay--;
+            this.restingDelay -= dtFactor;
             return;
         }
 
@@ -248,10 +271,25 @@ class Game {
         this.checkpointSafeTimer = 0;
         this.restCaveX = PLAYER_START_X;
         this.restingDelay = 0;
+        this.restingClearTimer = 0;
+        this.gameClearDelay = 0;
     }
 
-    _spawnCelebrationParticles() {
-        for (let i = 0; i < 20; i++) {
+    _updateGameClear(dtFactor) {
+        this.gameClearDelay = Math.max(0, this.gameClearDelay - dtFactor);
+
+        // Slow terrain scroll for a calm finish scene
+        this.terrain.update(0.8 * dtFactor, dtFactor);
+
+        // Player stands idle
+        this.player.updateAnimationOnly();
+
+        if (this.gameClearDelay <= 0 && this.input.consumeAction()) {
+            this._restartGame();
+        }
+    }
+
+    _spawnCelebrationParticles() {        for (let i = 0; i < 20; i++) {
             this.player.particles.push({
                 x: this.player.x + this.player.width / 2 + (Math.random() - 0.5) * 40,
                 y: this.player.y + this.player.height / 2 + (Math.random() - 0.5) * 40,
@@ -326,6 +364,9 @@ class Game {
                 break;
             case STATE.GAME_OVER:
                 this.ui.drawGameOverScreen(this.obstacles.getDistance());
+                break;
+            case STATE.GAME_CLEAR:
+                this.ui.drawGameClearScreen(this.obstacles.getDistance());
                 break;
         }
     }

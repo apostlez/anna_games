@@ -76,3 +76,32 @@ run_dubu_run/
 | 시작 화면 줄거리 | `js/ui.js` | "허리케인으로 날아간 햄스터 두부, 집으로 돌아가는 모험!" |
 | JS/CSS 파일 주석 | 전체 JS + CSS | "Jump Cinnamoroll" → "달려라 두부 (Run Dubu Run!)" |
 | README 작성 | `README.md` | 배포용 README (플레이 방법, 배포 가이드, 파일 구조) |
+
+# 개선 포인트 4
+
+브라우저에 따라 속도의 차이가 크다, 호스트에 따라 속도가 달라지지 않아야 한다.
+쉼터에 도달하면 시간이 지나서 화면의 다른 동물들과 먹구름이 없어진다.
+2 km 에 도달하면 게임 클리어를 추가한다, 2 km 지점에는 안나와 햄스터 성이 기다리고 있다.
+
+## 개선 포인트 4 구현 내용 (2026-06-28)
+
+| 항목 | 파일 | 내용 |
+|------|------|------|
+| 프레임 속도 독립적 이동 | `js/main.js` | `_loop()`에서 `dtFactor = rawDt / (1000/60)` 계산. 60fps=1.0, 120fps=0.5, 30fps=2.0. 모든 업데이트에 dtFactor 전달 |
+| 플레이어 물리 보정 | `js/player.js` | `update(cloudPlatforms, dtFactor=1)` — 중력, vy 이동, vx 마찰, 스프링 복원력 전부 dtFactor 스케일링 |
+| 지형 배경 구름 보정 | `js/terrain.js` | `BackgroundCloud.update(dtFactor)` — 내부 speed에 dtFactor 곱함 |
+| 장애물 이동 보정 | `js/obstacles.js` | Animal, BigAnimal의 `moveSpeed`에 dtFactor 곱함. spawnTimer도 dtFactor 누산 |
+| 쉼터 장애물 청소 | `js/main.js`, `js/obstacles.js` | 체크포인트 도달 후 90프레임(~1.5초) 뒤 `clearNonCheckpointObstacles()` 호출 — 동물/먹구름/비/번개/바람 제거 |
+| 2km 게임 클리어 | `js/obstacles.js` | 1900m 도달 시 `GoalScene` 스폰(캐슬 + 안나 캐릭터). 플레이어가 근접하면 `goalTriggered = true` |
+| GAME_CLEAR 상태 | `js/main.js` | `STATE.GAME_CLEAR` 추가. goalTriggered 감지 시 전환. `_updateGameClear()` — 부드러운 배경 스크롤 유지 |
+| 게임 클리어 화면 | `js/ui.js` | `drawGameClearScreen(distance)` — 컨페티, 황금 테두리 카드, "두부가 안나에게 돌아왔어요!" 메시지, 별 3개, 탭 재시작 |
+| GoalScene 그래픽 | `js/obstacles.js` | 핑크 성(탑·성가퀴·아치 문·창문·깃발), 안나 캐릭터(드레스·손 흔들기 애니메이션), 꽃 장식, 반짝이 파티클 |
+| 유틸 상수 | `js/utils.js` | `GAME_CLEAR_DISTANCE = 2000` 추가 |
+
+# 개선 포인트 5
+우측 상단의 메뉴 버튼을 추가한다, 메뉴 버튼을 누르면 게임이 멈추고, 타이틀로 돌아가기, 다시 진행하기를 선택할 수 있다.
+타이틀 화면에서 쉬움과 어려움 난이도를 선택할 수 있다.
+어려움 난이도는 지형으로 얕은 물 웅덩이와 깊은 물 웅덩이를 추가한다, 얕은 물 웅덩이를 지날때는 속도가 50% 느려지고 깊은 물 웅덩이는 빠지면 Game over.
+어려움 난이도는 4 km 로 거리가 늘어난다.
+High Score 를 추가한다. 현재 세션에서 이동 거리(high priority)와 점수로 순위를 표시한다.
+점수를 추가한다, 간식을 먹거나, 쉼터에 도달하면 점수가 올라간다.

@@ -96,8 +96,8 @@ class BackgroundCloud {
         this.opacity = 0.3 + Math.random() * 0.4;
     }
 
-    update() {
-        this.x -= this.speed;
+    update(dtFactor = 1) {
+        this.x -= this.speed * dtFactor;
     }
 
     draw(ctx) {
@@ -183,10 +183,10 @@ export class TerrainManager {
         this._init();
     }
 
-    update(scrollSpeed) {
+    update(scrollSpeed, dtFactor = 1) {
         // Update background clouds
         for (const cloud of this.bgClouds) {
-            cloud.update();
+            cloud.update(dtFactor);
         }
         this.bgClouds = this.bgClouds.filter(c => !c.isOffScreen());
 
