@@ -84,9 +84,9 @@ class Game {
 
     _loop(timestamp) {
         // Delta time: normalize to 60fps so speed is consistent on any display
-        const rawDt = Math.min(timestamp - this._lastTime, 100); // cap at 100ms
+        // Clamp: min 0.1 (prevents negative/zero on iOS Safari), max 3.0 (prevents spike on tab-switch)
+        const dtFactor = Math.max(0.1, Math.min((timestamp - this._lastTime) / (1000 / 60), 3.0));
         this._lastTime = timestamp;
-        const dtFactor = rawDt / (1000 / 60); // 1.0 at 60fps, 0.5 at 120fps, 2.0 at 30fps
 
         this._update(dtFactor);
         this._render();
