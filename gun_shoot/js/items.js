@@ -46,7 +46,7 @@ export class Item extends Phaser.GameObjects.Text {
         this.magnetSpeed = 380; // 자석 스피드
     }
     
-    spawn(x, y, type, value = 0) {
+    spawn(x, y, type, value = 0, minCharge = -10) {
         const config = ITEM_CONFIGS[type];
         this.itemType = type;
         this.value = value;
@@ -62,9 +62,11 @@ export class Item extends Phaser.GameObjects.Text {
         this.body.enable = true;
         this.body.setSize(config.size, config.size);
         
-        // 충전형 아이템(POWER/ATTACK_SPEED)은 최초 충전 상태가 -10~10 사이 랜덤으로 시작 (음수면 획득 시 오히려 패널티)
+        // 충전형 아이템(POWER/ATTACK_SPEED)은 최초 충전 상태가 minCharge~10 사이 랜덤으로 시작 (음수면 획득 시 오히려 패널티)
+        // minCharge 는 플레이어 레벨이 오를수록 상승해(-10 -> 최대 10) 고레벨에서는 패널티 위험이 줄어든다
         if (CHARGEABLE_ITEM_TYPES.includes(type)) {
-            this.setCharge(Phaser.Math.Between(-10, 10));
+            const safeMin = Math.min(minCharge, 10); // 10을 초과하면 Phaser.Math.Between 이 오류나므로 상한 보정
+            this.setCharge(Phaser.Math.Between(safeMin, 10));
         } else {
             this.chargeLevel = 0;
         }

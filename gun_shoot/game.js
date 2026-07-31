@@ -313,6 +313,10 @@ class MainGameScene extends Phaser.Scene {
 
         if (e) {
             e.spawn(x, -30, type, this.difficulty);
+            // 플레이어 레벨에 비례해 적 체력 추가 증가 (레벨당 +12%, 속도/점수/경험치는 영향 없음)
+            const levelHpMult = 1 + (this.player.level - 1) * 0.12;
+            e.hp = Math.round(e.hp * levelHpMult);
+            e.maxHp = e.hp;
             console.log(`[SPAWN OK] pos=(${e.x},${e.y}) active=${e.active} visible=${e.visible}`);
         } else {
             console.warn('[SPAWN FAIL] 풀에 사용 가능한 적 없음');
@@ -465,7 +469,17 @@ class MainGameScene extends Phaser.Scene {
 
     _dropItem(x, y, type, value) {
         const it = this.itemsGroup.getChildren().find(i => !i.active);
-        if (it) it.spawn(x, y, type, value);
+        if (it) {
+            const minCharge = CHARGEABLE_ITEM_TYPES.includes(type) ? this._chargeableItemMinCharge() : -10;
+            it.spawn(x, y, type, value, minCharge);
+        }
+    }
+
+    // 플레이어 레벨이 오를수록 POWER/ATTACK_SPEED 아이템의 최초 충전 최저값이 상승한다 (레벨당 +1, 최대 10)
+    // -> 레벨이 높아질수록 획득 시 페널티(음수 충전)가 걸릴 위험이 줄어든다
+    _chargeableItemMinCharge() {
+        const level = this.player ? this.player.level : 1;
+        return Phaser.Math.Clamp(-10 + (level - 1) * 1, -10, 10);
     }
 
     // 적 처치와 별개로, 하늘에서 아이템이 직접 떨어지는 연출 (5초 간격)
