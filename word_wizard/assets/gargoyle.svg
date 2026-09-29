@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 360" role="img" aria-label="A flying gargoyle">
+  <defs>
+    <linearGradient id="stone" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#687872"/>
+      <stop offset="1" stop-color="#1b292c"/>
+    </linearGradient>
+    <linearGradient id="wing" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#50635f"/>
+      <stop offset="1" stop-color="#152326"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#172526" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M190 142 28 28l54 143 100 67Z" fill="url(#wing)" stroke-width="13"/>
+    <path d="m330 142 162-114-54 143-100 67Z" fill="url(#wing)" stroke-width="13"/>
+    <path d="M183 130 204 88l53-25 58 25 22 42 18 91-32 82-63 31-63-31-32-82Z" fill="url(#stone)" stroke-width="13"/>
+    <path d="m202 100-58-80 89 39M318 100l58-80-89 39" fill="#3d504e" stroke-width="13"/>
+    <path d="m202 172 48-25 68 25-12 63-45 31-48-31Z" fill="#10191b" stroke-width="9"/>
+    <path d="m215 177 33-12 13 9-40 17ZM305 177l-33-12-13 9 40 17Z" fill="#e55f4f" stroke-width="5"/>
+    <path d="m224 260 30 22 42-22-8 48-34 18-34-18Z" fill="#111a1c" stroke-width="8"/>
+    <path d="m238 283 8 16M258 287v18M278 283l-8 16" fill="none" stroke="#e7c76a" stroke-width="5"/>
+    <path d="m196 294-52 53 72-28M324 294l52 53-72-28" fill="none" stroke-width="17"/>
+    <path d="m155 328-32 25M365 328l32 25" fill="none" stroke="#e7c76a" stroke-width="7"/>
+  </g>
+  <g fill="#e7c76a">
+    <circle cx="84" cy="79" r="4"/><circle cx="435" cy="79" r="4"/><circle cx="75" cy="119" r="3"/><circle cx="445" cy="119" r="3"/>
+  </g>
+</svg>

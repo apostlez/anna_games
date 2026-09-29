@@ -1,0 +1,192 @@
+{
+  "sourcePage": "https://nexusbook.com/qr/word/mp3.asp?step=2&ctype=textbook",
+  "bookLevel": "3-4",
+  "audioUrlPattern": "https://nexusbook.com/qr/word/files/mp3/textbook/3-4/{day}.mp3",
+  "dayCount": 30,
+  "extractedAt": "2026-09-30",
+  "method": "Machine-assisted extraction with faster-whisper small.en, followed by category-aware separation of English vocabulary from Korean translations.",
+  "status": "machine-assisted-needs-review",
+  "licenseNote": "Verify the publisher's permission before redistributing the source audio or this derived dataset.",
+  "days": [
+    {
+      "day": 1,
+      "category": "family",
+      "words": ["family", "husband", "wife", "son", "daughter", "uncle", "aunt", "cousin", "nephew", "niece", "live"],
+      "needsReview": true
+    },
+    {
+      "day": 2,
+      "category": "people",
+      "words": ["boy", "girl", "man", "woman", "gentleman", "lady", "person", "people"],
+      "needsReview": true
+    },
+    {
+      "day": 3,
+      "category": "numbers",
+      "words": ["thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"],
+      "needsReview": true
+    },
+    {
+      "day": 4,
+      "category": "feelings",
+      "words": ["great", "bad", "scared", "worry", "cry", "joyful", "upset", "thirsty", "hungry", "tired"],
+      "needsReview": true
+    },
+    {
+      "day": 5,
+      "category": "school",
+      "words": ["classmate", "lesson", "homework", "test", "elementary", "teach", "learn", "read", "write"],
+      "needsReview": true
+    },
+    {
+      "day": 6,
+      "category": "subjects",
+      "words": ["Korean", "English", "math", "science", "art", "music", "history", "study", "sport", "health"],
+      "needsReview": true
+    },
+    {
+      "day": 7,
+      "category": "numbers-and-math",
+      "words": ["minus", "once", "twice", "zero", "hundred", "thousand", "a lot of"],
+      "needsReview": true
+    },
+    {
+      "day": 8,
+      "category": "science",
+      "words": ["rocket", "robot", "graph", "plant", "vegetable", "insect", "earth", "air", "stone", "fire"],
+      "needsReview": true
+    },
+    {
+      "day": 9,
+      "category": "art",
+      "words": ["color", "brush", "line", "circle", "triangle", "square", "draw", "paint", "make", "cut"],
+      "needsReview": true
+    },
+    {
+      "day": 10,
+      "category": "music",
+      "words": ["piano", "guitar", "drum", "violin", "cello", "flute", "trumpet", "play", "sing", "listen"],
+      "needsReview": true
+    },
+    {
+      "day": 11,
+      "category": "hobbies",
+      "words": ["hobby", "favorite", "cooking", "movie", "dance", "camera", "kite", "badminton", "jogging", "travel"],
+      "needsReview": true
+    },
+    {
+      "day": 12,
+      "category": "food-and-meals",
+      "words": ["meal", "breakfast", "lunch", "dinner", "egg", "salad", "delicious", "sweet", "bitter", "eat", "drink"],
+      "needsReview": true
+    },
+    {
+      "day": 13,
+      "category": "things",
+      "words": ["can", "board", "piece", "glove", "bat", "album", "crayon", "candy", "plastic", "flag"],
+      "needsReview": true
+    },
+    {
+      "day": 14,
+      "category": "flowers",
+      "words": ["root", "seed", "stem", "leaf", "flower", "bud", "sunflower", "rose", "tulip", "lily", "grow"],
+      "needsReview": true
+    },
+    {
+      "day": 15,
+      "category": "animals",
+      "words": ["cheetah", "iguana", "deer", "camel", "panda", "owl", "ostrich", "penguin"],
+      "needsReview": true
+    },
+    {
+      "day": 16,
+      "category": "sea-animals",
+      "words": ["whale", "shark", "dolphin", "seal", "squid", "octopus", "crab", "lobster", "shrimp", "starfish"],
+      "needsReview": true
+    },
+    {
+      "day": 17,
+      "category": "insects",
+      "words": ["butterfly", "bee", "dragonfly", "beetle", "ladybug", "ant", "grasshopper", "fly", "mosquito", "spider"],
+      "needsReview": true
+    },
+    {
+      "day": 18,
+      "category": "jobs",
+      "words": ["singer", "dancer", "firefighter", "reporter", "businessman", "driver", "actor", "lawyer"],
+      "needsReview": true
+    },
+    {
+      "day": 19,
+      "category": "time",
+      "words": ["second", "minute", "hour", "day", "night", "week", "month", "season", "year"],
+      "needsReview": true
+    },
+    {
+      "day": 20,
+      "category": "week",
+      "words": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "weekend", "work", "rest"],
+      "needsReview": true
+    },
+    {
+      "day": 21,
+      "category": "months",
+      "words": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October"],
+      "needsReview": true
+    },
+    {
+      "day": 22,
+      "category": "seasons-and-holidays",
+      "words": ["holiday", "vacation", "spring", "summer", "autumn", "winter", "different", "return"],
+      "needsReview": true
+    },
+    {
+      "day": 23,
+      "category": "location",
+      "words": ["in front of", "behind", "next to", "top", "middle", "bottom", "corner", "end"],
+      "needsReview": true
+    },
+    {
+      "day": 24,
+      "category": "town",
+      "words": ["town", "store", "restaurant", "bakery", "church", "library", "hospital", "drugstore", "theater", "bank", "post office"],
+      "needsReview": true
+    },
+    {
+      "day": 25,
+      "category": "city",
+      "words": ["city", "building", "town", "company", "pool", "park", "airport", "factory", "museum", "police station"],
+      "needsReview": true
+    },
+    {
+      "day": 26,
+      "category": "nations",
+      "words": ["nation", "Korea", "Japan", "China", "India", "America", "Germany", "England", "France", "Italy", "world"],
+      "needsReview": true
+    },
+    {
+      "day": 27,
+      "category": "castle",
+      "words": ["king", "queen", "prince", "princess", "block", "gate", "wall", "stairs", "garden"],
+      "needsReview": true
+    },
+    {
+      "day": 28,
+      "category": "clothes",
+      "words": ["hat", "belt", "vest", "sweater", "coat", "button", "pocket", "shorts", "boots", "wear"],
+      "needsReview": true
+    },
+    {
+      "day": 29,
+      "category": "adjectives",
+      "words": ["look", "young", "old", "strong", "weak", "hard", "soft", "dirty", "clean", "thick", "thin"],
+      "needsReview": true
+    },
+    {
+      "day": 30,
+      "category": "actions",
+      "words": ["start", "finish", "call", "walk", "ride", "put", "fall", "help"],
+      "needsReview": true
+    }
+  ]
+}

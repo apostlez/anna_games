@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-label="A magical flying broom">
+  <defs>
+    <linearGradient id="wood" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#e7c76a"/>
+      <stop offset="0.48" stop-color="#a96f45"/>
+      <stop offset="1" stop-color="#4a2d2a"/>
+    </linearGradient>
+    <linearGradient id="bristles" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#e0a85f"/>
+      <stop offset="1" stop-color="#674235"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g transform="rotate(-12 360 210)" stroke="#182728" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M111 186 571 106c18-3 35 9 38 27 3 18-9 35-27 38l-460 80Z" fill="url(#wood)" stroke-width="13"/>
+    <path d="M128 181 55 153l-28 24 73 43Z" fill="#f29a52" stroke-width="11"/>
+    <path d="m72 191-50 50 21 22 64-37Z" fill="#e7c76a" stroke-width="10"/>
+    <path d="M571 108c28 28 33 60 10 83l-41 27-30-77 36-31Z" fill="#50635f" stroke-width="12"/>
+    <path d="M548 123c-17-44 5-73 42-95M568 140c8-48 42-68 77-70M586 155c34-35 72-34 103-12" fill="none" stroke="#82b29a" stroke-width="9" filter="url(#glow)"/>
+    <path d="M567 126c-6-29 15-53 41-63M587 143c21-27 48-35 75-29M601 160c26-15 50-13 69-2" fill="none" stroke="#e7c76a" stroke-width="4"/>
+    <path d="M347 142 369 276M323 147l23 133M372 133l24 137" fill="none" stroke="#e7c76a" stroke-width="7"/>
+  </g>
+  <g fill="#e7c76a" opacity=".85">
+    <circle cx="119" cy="109" r="5"/><circle cx="170" cy="91" r="3"/><circle cx="598" cy="286" r="4"/><circle cx="638" cy="254" r="3"/>
+  </g>
+</svg>

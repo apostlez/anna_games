@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="An open spellbook">
+  <defs>
+    <linearGradient id="cover" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#8e5b42"/>
+      <stop offset="1" stop-color="#3d2927"/>
+    </linearGradient>
+    <linearGradient id="page" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff4d0"/>
+      <stop offset="1" stop-color="#c9a875"/>
+    </linearGradient>
+  </defs>
+  <path d="M320 300 42 336 72 78c82-29 165-22 248 32Zm0 0 278 36-30-258c-82-29-165-22-248 32Z" fill="url(#cover)" stroke="#1a2425" stroke-width="13" stroke-linejoin="round"/>
+  <path d="M320 289 78 318l22-213c74-19 148-12 220 30Zm0 0 242 29-22-213c-74-19-148-12-220 30Z" fill="url(#page)" stroke="#5b4437" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M320 135v153" stroke="#6b4b39" stroke-width="10" stroke-linecap="round"/>
+  <g fill="none" stroke="#9c7650" stroke-width="6" stroke-linecap="round" opacity=".8">
+    <path d="m125 155 150-12M118 190l160-14M112 226l168-14M515 155 365 143M522 190 362 176M528 226 360 212"/>
+  </g>
+  <path d="m320 86 18 37 41 6-30 29 8 41-37-20-37 20 8-41-30-29 41-6Z" fill="#e7c76a" stroke="#6d4a37" stroke-width="6"/>
+</svg>
